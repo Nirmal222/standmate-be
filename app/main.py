@@ -1,6 +1,12 @@
+import sys
+import os
 from contextlib import asynccontextmanager
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+
+# Add current directory to sys.path to resolve imports when running from root
+sys.path.append(os.path.dirname(os.path.abspath(__file__)))
+
 from api.v1.router import api_router
 from core.database import engine
 
