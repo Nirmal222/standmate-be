@@ -122,7 +122,7 @@ async def callback(request: Request, db: Annotated[AsyncSession, Depends(get_db)
         # Here we decode unverified claims assuming direct communication with Google's token endpoint is secure enough for this step
         # or use library to verify. The reference code used get_unverified_claims.
         userinfo = jwt.get_unverified_claims(id_token)
-        
+        print(userinfo, "<-- user information parsed")
         email = userinfo.get("email")
         if not email:
              return RedirectResponse(url=f"{settings.FRONTEND_BASE_URL}/signup?error=no_email")

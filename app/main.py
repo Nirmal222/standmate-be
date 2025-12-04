@@ -9,6 +9,7 @@ sys.path.append(os.path.dirname(os.path.abspath(__file__)))
 
 from api.v1.router import api_router
 from core.database import engine
+from core.config import settings
 
 # Import all models to ensure they are registered with SQLAlchemy
 from models.base import Base
@@ -40,6 +41,7 @@ app = FastAPI(lifespan=lifespan)
 origins = [
     "http://localhost:3000",
     "http://127.0.0.1:3000",
+    settings.FRONTEND_BASE_URL,
 ]
 
 app.add_middleware(
