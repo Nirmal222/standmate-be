@@ -15,5 +15,9 @@ class User(Base):
     auth_provider: Mapped[str] = mapped_column(String(50), default="email")
     is_active: Mapped[bool] = mapped_column(Boolean, default=True)
     
+    # Access Control
+    has_access: Mapped[bool] = mapped_column(Boolean, default=False)
+    is_waitlisted: Mapped[bool] = mapped_column(Boolean, default=False)
+
     # Relationships
     projects: Mapped[list["Project"]] = relationship("Project", back_populates="user")

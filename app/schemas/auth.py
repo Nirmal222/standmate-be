@@ -18,3 +18,6 @@ class UserLogin(BaseModel):
 
 class GoogleLogin(BaseModel):
     token: str
+
+class AccessCodeVerify(BaseModel):
+    code: str

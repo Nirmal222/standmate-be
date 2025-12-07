@@ -12,7 +12,8 @@ from core.database import get_db
 from core import security
 from core.config import settings
 from models.user import User
-from schemas.auth import Token, UserCreate, UserLogin
+from models.access_code import AccessCode
+from schemas.auth import Token, UserCreate, UserLogin, AccessCodeVerify
 from api import deps
 
 router = APIRouter()
@@ -58,7 +59,9 @@ async def signup(
     # Generate token
     access_token_expires = timedelta(minutes=settings.ACCESS_TOKEN_EXPIRE_MINUTES)
     access_token = security.create_access_token(
-        subject=db_user.email, expires_delta=access_token_expires
+        subject=db_user.email, 
+        expires_delta=access_token_expires,
+        claims={"has_access": db_user.has_access, "is_waitlisted": db_user.is_waitlisted}
     )
     return {"access_token": access_token, "token_type": "bearer"}
 
@@ -80,7 +83,9 @@ async def login(
         
     access_token_expires = timedelta(minutes=settings.ACCESS_TOKEN_EXPIRE_MINUTES)
     access_token = security.create_access_token(
-        subject=user.email, expires_delta=access_token_expires
+        subject=user.email, 
+        expires_delta=access_token_expires,
+        claims={"has_access": user.has_access, "is_waitlisted": user.is_waitlisted}
     )
     return {"access_token": access_token, "token_type": "bearer"}
 
@@ -154,7 +159,9 @@ async def callback(request: Request, db: Annotated[AsyncSession, Depends(get_db)
         # Create our JWT
         access_token_expires = timedelta(minutes=settings.ACCESS_TOKEN_EXPIRE_MINUTES)
         access_token = security.create_access_token(
-            subject=user.email, expires_delta=access_token_expires
+            subject=user.email, 
+            expires_delta=access_token_expires,
+            claims={"has_access": user.has_access, "is_waitlisted": user.is_waitlisted}
         )
         
         # Redirect to Frontend with token
@@ -170,5 +177,35 @@ async def read_users_me(
         "id": current_user.id,
         "email": current_user.email,
         "username": current_user.username,
-        "auth_provider": current_user.auth_provider
+        "auth_provider": current_user.auth_provider,
+        "has_access": current_user.has_access,
+        "is_waitlisted": current_user.is_waitlisted
     }
+
+@router.post("/verify-access-code")
+async def verify_access_code(
+    payload: AccessCodeVerify,
+    current_user: Annotated[User, Depends(deps.get_current_user)],
+    db: Annotated[AsyncSession, Depends(get_db)]
+):
+    if current_user.has_access:
+        return {"message": "Already has access"}
+
+    result = await db.execute(select(AccessCode).where(AccessCode.code == payload.code))
+    access_code = result.scalars().first()
+
+    if not access_code:
+        raise HTTPException(status_code=400, detail="Invalid access code")
+    
+    if access_code.is_used:
+        raise HTTPException(status_code=400, detail="Access code already used")
+
+    # Mark as used
+    access_code.is_used = True
+    access_code.used_by_id = current_user.id
+    
+    # Grant access
+    current_user.has_access = True
+    
+    await db.commit()
+    return {"message": "Access granted"}
