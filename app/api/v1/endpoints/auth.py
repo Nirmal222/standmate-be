@@ -1,19 +1,21 @@
 from typing import Annotated
 from datetime import timedelta
 import httpx
-from fastapi import APIRouter, Depends, HTTPException, status, Request
+from fastapi import APIRouter, Depends, HTTPException, status, Request, Header
 from fastapi.responses import RedirectResponse
 from fastapi.security import OAuth2PasswordRequestForm
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
 from jose import jwt
+import uuid
 
 from core.database import get_db
 from core import security
 from core.config import settings
+from core.mail import send_email
 from models.user import User
 from models.access_code import AccessCode
-from schemas.auth import Token, UserCreate, UserLogin, AccessCodeVerify
+from schemas.auth import Token, UserCreate, UserLogin, AccessCodeVerify, AccessCodeCreate, AccessCodeResponse
 from api import deps
 
 router = APIRouter()
@@ -209,3 +211,46 @@ async def verify_access_code(
     
     await db.commit()
     return {"message": "Access granted"}
+
+@router.post("/access-codes", response_model=AccessCodeResponse)
+async def create_access_code(
+    payload: AccessCodeCreate,
+    db: Annotated[AsyncSession, Depends(get_db)],
+    x_admin_secret: Annotated[str | None, Header()] = None
+):
+    if not x_admin_secret or x_admin_secret != settings.ADMIN_SECRET:
+        raise HTTPException(status_code=403, detail="Invalid admin secret")
+
+    # Generate code if not provided
+    code = payload.code
+    if not code:
+        code = str(uuid.uuid4()).split("-")[0].upper()
+        # Ensure unique
+        while True:
+            result = await db.execute(select(AccessCode).where(AccessCode.code == code))
+            if not result.scalars().first():
+                break
+            code = str(uuid.uuid4()).split("-")[0].upper()
+    else:
+        # Check if provided code exists
+        result = await db.execute(select(AccessCode).where(AccessCode.code == code))
+        if result.scalars().first():
+             raise HTTPException(status_code=400, detail="Code already exists")
+
+    # Create Code
+    db_code = AccessCode(code=code)
+    db.add(db_code)
+    await db.commit()
+    await db.refresh(db_code)
+    
+    # Send Email
+    email_sent = await send_email(
+        to_email=payload.email, 
+        subject="Your Standmate Access Code", 
+        template_name="access_code", 
+        context={"code": code}
+    )
+    
+    msg = "Access code created and sent via email" if email_sent else "Access code created but email failed to send"
+    
+    return {"code": code, "message": msg}

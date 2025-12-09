@@ -21,3 +21,11 @@ class GoogleLogin(BaseModel):
 
 class AccessCodeVerify(BaseModel):
     code: str
+
+class AccessCodeCreate(BaseModel):
+    email: EmailStr
+    code: str | None = None
+
+class AccessCodeResponse(BaseModel):
+    code: str
+    message: str

@@ -19,6 +19,14 @@ class Settings(BaseSettings):
     FRONTEND_BASE_URL: str = "http://localhost:3000"
     BACKEND_URL: str = "http://localhost:8000"
 
+    # Mailjet
+    MAILJET_API_KEY: str = ""
+    MAILJET_SECRET_KEY: str = ""
+    MAILJET_SENDER_EMAIL: str = "nirmal@huzlr.com"
+
+    # Admin
+    ADMIN_SECRET: str = "admin-secret-key"
+
     class Config:
         env_file = str(ENV_FILE)
         env_file_encoding = 'utf-8'
