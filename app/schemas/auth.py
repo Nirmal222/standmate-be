@@ -1,4 +1,4 @@
-from pydantic import BaseModel, EmailStr
+from pydantic import BaseModel, EmailStr, Field
 
 class Token(BaseModel):
     access_token: str
@@ -10,11 +10,11 @@ class TokenData(BaseModel):
 class UserCreate(BaseModel):
     email: EmailStr
     username: str
-    password: str
+    password: str = Field(min_length=8, max_length=72)
 
 class UserLogin(BaseModel):
     email: EmailStr
-    password: str
+    password: str = Field(max_length=72)
 
 class GoogleLogin(BaseModel):
     token: str
