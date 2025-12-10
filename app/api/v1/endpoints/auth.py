@@ -58,6 +58,14 @@ async def signup(
     await db.commit()
     await db.refresh(db_user)
 
+    # Send Welcome Email
+    await send_email(
+        to_email=db_user.email,
+        subject="Welcome to huzlr.",
+        template_name="welcome",
+        context={"username": db_user.username}
+    )
+
     # Generate token
     access_token_expires = timedelta(minutes=settings.ACCESS_TOKEN_EXPIRE_MINUTES)
     access_token = security.create_access_token(
@@ -157,6 +165,14 @@ async def callback(request: Request, db: Annotated[AsyncSession, Depends(get_db)
             db.add(user)
             await db.commit()
             await db.refresh(user)
+
+            # Send Welcome Email
+            await send_email(
+                to_email=user.email,
+                subject="Welcome to Huzlr",
+                template_name="welcome",
+                context={"username": user.username}
+            )
             
         # Create our JWT
         access_token_expires = timedelta(minutes=settings.ACCESS_TOKEN_EXPIRE_MINUTES)
@@ -246,7 +262,7 @@ async def create_access_code(
     # Send Email
     email_sent = await send_email(
         to_email=payload.email, 
-        subject="Your Standmate Access Code", 
+        subject="Your Huzlr Access Code", 
         template_name="access_code", 
         context={"code": code}
     )

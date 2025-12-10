@@ -98,7 +98,7 @@ def _base_template(content: str) -> str:
                 {content}
             </div>
             <div class="footer">
-                <p>&copy; {year} Standmate. All rights reserved.</p>
+                <p>&copy; {year} Huzlr. All rights reserved.</p>
                 <p>If you didn't request this, please ignore this email.</p>
             </div>
         </div>
@@ -122,13 +122,30 @@ def template_access_code(context: Dict[str, Any]) -> str:
         
         <p>Enter this code on the onboarding screen to get started.</p>
         
-        <a href="{frontend_url}" class="cta-button">Go to Standmate</a>
+        <a href="{frontend_url}" class="cta-button">Go to Huzlr</a>
+    """
+    return _base_template(content)
+
+def template_welcome(context: Dict[str, Any]) -> str:
+    username = context.get("username", "there")
+    frontend_url = context.get("frontend_url", settings.FRONTEND_BASE_URL)
+    
+    content = f"""
+        <p class="welcome-text" style="font-size: 18px; color: #52525b; margin-bottom: 24px;">
+            Welcome to the team, {username}.
+        </p>
+        <p>We're thrilled to have you on board. Huzlr is designed to help you streamline your standups and boost productivity.</p>
+        
+        <p>You can now access your dashboard and start managing your projects.</p>
+        
+        <a href="{frontend_url}/dashboard" class="cta-button">Go to Dashboard</a>
     """
     return _base_template(content)
 
 # Registry mapping template names to functions
 TEMPLATES: Dict[str, Callable[[Dict[str, Any]], str]] = {
     "access_code": template_access_code,
+    "welcome": template_welcome,
 }
 
 # --- Async Sender Function ---
@@ -164,7 +181,7 @@ async def send_email(to_email: str, subject: str, template_name: str, context: D
             {
               "From": {
                 "Email": sender_email,
-                "Name": "Standmate Team"
+                "Name": "Huzlr Team"
               },
               "To": [
                 {
